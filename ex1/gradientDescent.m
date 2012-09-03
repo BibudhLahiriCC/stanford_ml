@@ -19,11 +19,7 @@ for iter = 1:num_iters
     old_theta = theta;
 
     for j = 1:2
-      sum = 0;
-      for i = 1:m
-        to_add = X(i, :)*old_theta - y(i);
-        sum += to_add*X(i, j);
-      end
+      sum = (X*old_theta - y)'*X(:, j);
       theta(j) = old_theta(j) - alpha*(1/m)*(sum);
     end
 
