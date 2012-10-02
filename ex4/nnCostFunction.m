@@ -61,47 +61,93 @@ Theta2_grad = zeros(size(Theta2));
 %               the regularization separately and then add them to Theta1_grad
 %               and Theta2_grad from Part 2.
 %
-X = [ones(m, 1) X];
-a_1 = X';
-z_2 = Theta1*a_1;
-a_2 = sigmoid(z_2);
-a_2 = [ones(1, m); a_2];
-z_3 = Theta2*a_2;
-a_3 = sigmoid(z_3);
-%a_3 will be a 10 x 5000 matrix. a_3 = Set of 5000 values of (h_{\theta}(x))
+  X = [ones(m, 1) X];
+  %Original y is an m x 1 vectors, where the elements are from {1,2,...K}.
+  %We convert it to an m x K matrix, where the i-th row and k-th col is 1
+  %y_i = k.
+  y_original = y;
+  y = zeros(m, num_labels);
+  for i = 1:m
+    for j = 1:num_labels
+      if (y_original(i) == j)
+         y(i, j) = 1;
+      else
+         y(i, j) = 0;
+      endif
+    endfor
+  endfor
+  %For computing the cost function J(theta)
+  a_1 = X';
+  z_2 = Theta1*a_1;
+  a_2 = sigmoid(z_2);
+  a_2 = [ones(1, m); a_2];
+  z_3 = Theta2*a_2;
+  a_3 = sigmoid(z_3);
 
-%Original y is an m x 1 vectors, where the elements are from {1,2,...K}.
-%We convert it to an m x K matrix, where the i-th row and k-th col is 1
-%y_i = k.
-y_original = y;
-y = zeros(m, num_labels);
-for i = 1:m
+  first_sum = 0;
+  for i = 1:m
+    for k = 1:num_labels
+      first_sum += (y(i, k)*log(a_3(k, i)) + (1 - y(i, k))*log(1 - a_3(k, i)));
+    endfor
+  endfor
+
+  second_sum = 0;
+  for j = 1:hidden_layer_size
+    for k = 2:(input_layer_size + 1)
+      second_sum += (Theta1(j, k))^2;
+    endfor
+  endfor
+
   for j = 1:num_labels
-    if (y_original(i) == j)
-       y(i, j) = 1;
-    else
-       y(i, j) = 0;
-    endif
+    for k = 2:(hidden_layer_size + 1)
+      second_sum += (Theta2(j, k))^2;
+    endfor
   endfor
-endfor
 
-sum = 0;
-for i = 1:m
-  for k = 1:num_labels
-    sum += (y(i, k)*log(a_3(k, i)) + (1 - y(i, k))*log(1 - a_3(k, i)));
-  endfor
-endfor
-%disp(sum);
-J = -(1/m)*sum;
-%J = (-1/m)*(ones(1, num_labels)*(log(a_3)*y)*ones(num_labels, 1) +
-%        + ones(1,m)*(ones(m, num_labels) - y)*log(ones(num_labels, m) - a_3)*ones(m,1));
-
+  second_sum *= (lambda/2);
+  J = (1/m)*(-first_sum + second_sum);
+  %J = (-1/m)*(ones(1, num_labels)*(log(a_3)*y)*ones(num_labels, 1) +
+  %        + ones(1,m)*(ones(m, num_labels) - y)*log(ones(num_labels, m) - a_3)*ones(m,1));
 % -------------------------------------------------------------
 
 % =========================================================================
+%For computing the gradient of the cost function
+  for t = 1:m
 
-% Unroll gradients
+  a_1 = (X(t, :))';  %a_1 has dim (n+1)x1
+
+  z_2 = Theta1*a_1;  %z_2 has dim hidden_layer_size x 1
+
+  a_2 = sigmoid(z_2); %a_2 has dim hidden_layer_size x 1
+
+  a_2 = [1; a_2]; %a_2 now has dim (hidden_layer_size + 1) x 1
+
+  z_3 = Theta2*a_2;  %z_3 has dim num_labels x 1
+
+  a_3 = sigmoid(z_3); %a_3 has dim num_labels x 1
+
+  %a_3 will be a num_labels x 1 matrix. a_3 = h_{\theta}(x).
+  %The i-th row of y is a 1 x num_labels vector.
+
+  delta_3 = a_3 - (y(t, :))';
+
+  %delta_3 is a num_labels x 1 vector.
+
+  delta_2 = ((Theta2)'*delta_3).*[1; sigmoidGradient(z_2)];
+
+  %delta_2 has dimension (hidden_layer_size +1) x 1
+
+  delta_2 = delta_2(2:end); %delta_2 now has dimension hidden_layer_size x 1
+
+  Theta2_grad += delta_3*a_2'; %Theta2_grad has dimension num_labels x (hidden_layer_size + 1)
+
+  Theta1_grad += delta_2*a_1'; %Theta1_grad has dimension hidden_layer_size x (n + 1)
+
+endfor
+
+  Theta1_grad /= m;
+  Theta2_grad /= m;
+  % Unroll gradients
 grad = [Theta1_grad(:) ; Theta2_grad(:)];
-
 
 end
